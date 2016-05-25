@@ -328,11 +328,16 @@ window.bot_impl = function(framework, slither_bot) {
             var maxid = Math.ceil(id + 0.25);
             if(maxid >= segments)
                 maxid = 0;
+            var rid = Math.round(id);
+            if(rid >= segments)
+                rid = 0;
 
             object.id = id;
             object.ids = [minid];
             if(minid != maxid)
                 object.ids.push(maxid);
+            if(object.ids.indexOf(rid) === -1)
+                object.ids.push(rid);
 
             object.d = Math.sqrt(Math.pow(object.x-xx, 2) + Math.pow(object.y-yy, 2));
         };
@@ -360,7 +365,20 @@ window.bot_impl = function(framework, slither_bot) {
                     "y": snake.y + 100 * sin,
                     "size": diff*3
                 });
+
             snake.parts.forEach(process);
+            var snakeExtras = [];
+            snake.parts.forEach(function(part) {
+                var extra = {
+                    "x": part.x + 20 * Math.cos(part.r),
+                    "y": part.y + 20 * Math.sin(part.r)
+                };
+                process(extra);
+                snakeExtras.push(extra);
+            });
+            snakeExtras.forEach(function(extra) {
+                snake.parts.push(extra);
+            });
         });
         food.forEach(function(food) {
             food.food = true;
