@@ -225,7 +225,7 @@
         var randomMessages = [
                     "You can get the music from this stream by going to keygenmusic.net",
                     "Check out nexustools.com for other random projects and goodies",
-                    "Source and binaries will be released at https://github.com /QtSlitherBot/QtSlitherBot",
+                    "Source and Windows/Mac releases available at https://github.com /QtSlitherBot/QtSlitherBot",
                     "Apologies for Stream outages during the day, they're working on our internet",
                     "This stream is being hosted by an Ubuntu machine using OBS and other Free Software!",
                     "This bot uses only OpenSource software!"

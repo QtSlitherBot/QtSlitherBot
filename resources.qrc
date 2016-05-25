@@ -3,6 +3,5 @@
         <file>basic_bot.js</file>
         <file>bot_framework.js</file>
         <file>adv_bot.js</file>
-        <file>emoticons.json</file>
     </qresource>
 </RCC>

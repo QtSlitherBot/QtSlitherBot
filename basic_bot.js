@@ -21,8 +21,8 @@ window.bot_impl = function(framework, slither_bot) {
     var version = "1.7.8~basic";
     var worldlimit = 40000;
 
-    var segments = 12;
-    var trap_threshold = 350;
+    var segments = 16;
+    var hit_threshold = 350;
     var rendergame = false;
 
     framework.onkey = function(keyCode) {
@@ -61,7 +61,7 @@ window.bot_impl = function(framework, slither_bot) {
         wantagesLimit.push(0);
     }
 
-    var snakePos;
+    var snakePos = [0,0];
     var exclamationScale = 1;
     var food_c, snake_c, prey_c;
     framework.onrender = function(context2d, w, h) {
@@ -93,10 +93,13 @@ window.bot_impl = function(framework, slither_bot) {
                 var x = food.x - offx;
                 var y = food.y - offy;
                 var size = food.size*18;
-                if(food.d+50 <= wantages[food.id][1])
-                    context2d.fillStyle = "blue";
-                else
-                    context2d.fillStyle = "rgba(0, 0, 255, 0.4)";
+
+                var inview = false;
+                food.ids.forEach(function(id) {
+                    if(food.d+50 <= wantages[id][1])
+                        inview = true;
+                });
+                context2d.fillStyle = inview ? "blue" : "rgba(0, 0, 255, 0.4)";
 
                 try {
                     context2d.beginPath();
@@ -222,6 +225,9 @@ window.bot_impl = function(framework, slither_bot) {
                 case 3:
                     context2d.fillStyle = 'rgba(0, 255, 0, 0.4)';
                     break;
+
+                default:
+                    context2d.fillStyle = 'rgba(0, 0, 0, 0.4)';
                 }
                 context2d.fill();
             }
@@ -287,6 +293,7 @@ window.bot_impl = function(framework, slither_bot) {
 
     var currentRotation = 0;
     framework.ontick = function(myself, snakes, food, prey, w, h, zoom) {
+        mode = -1;
         snakePos = [myself.x, myself.y];
 
         if(rendergame) {
@@ -313,8 +320,21 @@ window.bot_impl = function(framework, slither_bot) {
             if(r < 0)
                 r = Math.PI + (Math.PI+r);
             object.r = r;
-            object.id = Math.floor((r/double_pi)*segments);
-            object.d = Math.abs(object.x-xx) + Math.abs(object.y-yy);
+
+            var id = (r/double_pi)*segments;
+            var minid = Math.floor(id - 0.25);
+            if(minid < 0)
+                minid = maxSegments;
+            var maxid = Math.ceil(id + 0.25);
+            if(maxid >= segments)
+                maxid = 0;
+
+            object.id = id;
+            object.ids = [minid];
+            if(minid != maxid)
+                object.ids.push(maxid);
+
+            object.d = Math.sqrt(Math.pow(object.x-xx, 2) + Math.pow(object.y-yy, 2));
         };
         snakes.forEach(function(snake) {
             process(snake);
@@ -356,27 +376,12 @@ window.bot_impl = function(framework, slither_bot) {
             if(part.d > view)
                 return;
 
-            var id = part.id;
-            if(wantages[id][0] >= 0)
-                wantages[id][0] = 0;
-            wantages[id][0] -= mod;
-            wantages[id][1] = Math.min(wantages[id][1], part.d);
-
-            id++;
-            if(id > maxSegments)
-                id = 0;
-            if(wantages[id][0] >= 0)
-                wantages[id][0] = 0;
-            wantages[id][0] -= mod*0.6;
-            wantages[id][1] = Math.min(wantages[id][1], part.d);
-
-            id-=2;
-            if(id < 0)
-                id = maxSegments;
-            if(wantages[id][0] >= 0)
-                wantages[id][0] = 0;
-            wantages[id][0] -= mod*0.6;
-            wantages[id][1] = Math.min(wantages[id][1], part.d);
+            part.ids.forEach(function(id) {
+                if(wantages[id][0] >= 0)
+                    wantages[id][0] = 0;
+                wantages[id][0] -= mod;
+                wantages[id][1] = Math.min(wantages[id][1], part.d);
+            });
         };
         snakes.forEach(function(snake) {
             snake.parts.forEach(function(part) {
@@ -384,9 +389,9 @@ window.bot_impl = function(framework, slither_bot) {
             });
             processSnakePart(snake, 3);
         });
-        var zeroed = true, seesFood = false;
+        var incompleteWantage = true, seesFood = false;
         while(view <= viewlimit) {
-            if(zeroed)
+            if(incompleteWantage)
                 maxview = view;
             processSnakePart = function(part) {
                 if(part.d > view)
@@ -394,27 +399,13 @@ window.bot_impl = function(framework, slither_bot) {
 
                 var mod = 1 - (part.d / viewlimit);
 
-                var id = part.id;
-                if(wantages[id][0] >= 0)
-                    wantages[id][0] = 0;
-                wantages[id][0] -= mod*0.004;
-                wantages[id][1] = Math.min(wantages[id][1], part.d);
+                part.ids.forEach(function(id){
+                    if(wantages[id][0] >= 0)
+                        wantages[id][0] = 0;
+                    wantages[id][0] -= mod*0.004;
+                    wantages[id][1] = Math.min(wantages[id][1], part.d);
+                });
 
-                id++;
-                if(id > maxSegments)
-                    id -= segments;
-                if(wantages[id][0] >= 0)
-                    wantages[id][0] = 0;
-                wantages[id][0] -= mod*0.001;
-                wantages[id][1] = Math.min(wantages[id][1], part.d);
-
-                id-=2;
-                if(id < 0)
-                    id += segments;
-                if(wantages[id][0] >= 0)
-                    wantages[id][0] = 0;
-                wantages[id][0] -= mod*0.001;
-                wantages[id][1] = Math.min(wantages[id][1], part.d);
             };
             snakes.forEach(function(snake) {
                 snake.parts.forEach(function(part) {
@@ -426,25 +417,26 @@ window.bot_impl = function(framework, slither_bot) {
                 if((food.size > 1 && food.d > view) || (food.d > maxview && food.size <= 1))
                     return;
 
-                var id = food.id;
-                if(food.d+50 <= wantages[id][1]) {
-                    var dist = food.d / viewlimit;
-                    dist = 1 - dist;
-                    if(dist <= 0 || dist > 1)
-                        return;
-
-                    if(food.size > 1)
-                        wantages[id][0] += Math.pow(food.size, 3)*dist;
-                    else {
-                        var diff = Math.abs(((myself.angle - food.r) + Math.PI) % double_pi - Math.PI);
-                        diff /= Math.PI;
-                        diff = 1.0-diff;
-                        if(diff > 1 || diff <= 0)
+                food.ids.forEach(function(id) {
+                    if(food.d+50 <= wantages[id][1]) {
+                        var dist = food.d / viewlimit;
+                        dist = 1 - dist;
+                        if(dist <= 0 || dist > 1)
                             return;
 
-                        wantages[id][0] += food.size*diff*dist;
+                        if(food.size > 1)
+                            wantages[id][0] += Math.pow(food.size, 3)*dist;
+                        else {
+                            var diff = Math.abs(((myself.angle - food.r) + Math.PI) % double_pi - Math.PI);
+                            diff /= Math.PI;
+                            diff = 1.0-diff;
+                            if(diff > 1 || diff <= 0)
+                                return;
+
+                            wantages[id][0] += food.size*diff*dist;
+                        }
                     }
-                }
+                });
             };
             food.forEach(processFood);
             prey.forEach(processFood);
@@ -454,7 +446,7 @@ window.bot_impl = function(framework, slither_bot) {
                 if(wantage < 0)
                     negative ++;
                 else if(wantage >= 3) {
-                    zeroed = false;
+                    incompleteWantage = false;
                     seesFood = true;
                     break;
                 } else if(wantage > 0)
@@ -462,7 +454,7 @@ window.bot_impl = function(framework, slither_bot) {
             }
             if(negative === segments) {
                 surrounded = true;
-                zeroed = false;
+                incompleteWantage = false;
                 break;
             }
 
@@ -484,7 +476,7 @@ window.bot_impl = function(framework, slither_bot) {
         }
 
         var ang = Math.floor((myself.angle / double_pi) * segments);
-        if(!surrounded && (trapped = (wantages[ang][1] < trap_threshold))) {
+        if(!surrounded && (trapped = (wantages[ang][1] < hit_threshold))) {
             var minleft = [-1,10,-max];
             var minright = [-1,10,-max];
 
@@ -562,21 +554,20 @@ window.bot_impl = function(framework, slither_bot) {
         }
 
         maxSegment[1] = max;
-        var preyFood = [];
-        food.forEach(Array.prototype.push.bind(preyFood));
-        prey.forEach(Array.prototype.push.bind(preyFood));
-        preyFood.forEach(function(food) {
-            if((seg === food.id || (snake_onscreen && (minSeg === food.id || maxSeg === food.id))) && food.d < maxSegment[1] && food.d < wantages[maxSegment[0]][1]) {
+        var processSegmentDirection = function(food) {
+            if((food.ids.indexOf(seg) !== -1 || (snake_onscreen && (food.ids.indexOf(minSeg) !== -1 || food.ids.indexOf(maxSeg) !== -1))) && food.d < maxSegment[1] && food.d < wantages[maxSegment[0]][1]) {
                 maxSegment[1] = food.d;
                 maxSegment[2] = food.r;
                 maxSegment[3] = food.prey;
             }
-        });
+        }
+        prey.forEach(processSegmentDirection);
+        food.forEach(processSegmentDirection);
 
         boost = surrounded || maxSegment[3];
         if(!boost && !trapped)
             snakes.forEach(function(snake) {
-                if(snake.d < trap_threshold && snake.speed > myself.speed)
+                if(snake.d < hit_threshold && snake.speed > myself.speed)
                     boost = true;
             });
 
@@ -598,7 +589,7 @@ window.bot_impl = function(framework, slither_bot) {
                         nang = 0;
 
                     var wantage = wantages[nang];
-                    if(wantage[1] < trap_threshold && wantage[0] < startWantage)
+                    if(wantage[1] < hit_threshold && wantage[0] < startWantage)
                         break;
                     if(wantage[0] > startWantage && wantage[0] > minright[2]) {
                         minright[0] = nang;
@@ -613,10 +604,10 @@ window.bot_impl = function(framework, slither_bot) {
                 for(var i=0; i<half_segments; i++) {
                     nang --;
                     if(nang < 0)
-                        nang = segments-1;
+                        nang = maxSegments;
 
                     var wantage = wantages[nang];
-                    if(wantage[1] < trap_threshold && wantage[0] < startWantage)
+                    if(wantage[1] < hit_threshold && wantage[0] < startWantage)
                         break;
                     if(wantage[0] > startWantage && wantage[0] > minleft[2]) {
                         minleft[0] = nang;
