@@ -18,7 +18,6 @@ void BotInstance::init(BotController *controller) {
     setUrl(QUrl("http://slither.io/"));
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(injectStorm()));
     connect(this, SIGNAL(renderProcessTerminated(QWebEnginePage::RenderProcessTerminationStatus,int)), this, SLOT(crashed()));
-
 }
 
 void BotInstance::crashed() {

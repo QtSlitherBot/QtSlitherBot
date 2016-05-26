@@ -22,7 +22,7 @@ window.bot_impl = function(framework, slither_bot) {
     var worldlimit = 40000;
 
     var segments = 16;
-    var view_pi = Math.PI*0.9;
+    var view_pi = Math.PI*0.8;
     var rendergame = false;
 
     framework.onkey = function(keyCode) {
@@ -49,6 +49,7 @@ window.bot_impl = function(framework, slither_bot) {
     var trapped = false;
     var max = 999999999;
     var surrounded = false;
+    var wrapTarget = false;
     var desiredSegment = -1;
     var maxSegments = segments-1;
     var wrapSegments = Math.floor(segments*0.6);
@@ -83,6 +84,8 @@ window.bot_impl = function(framework, slither_bot) {
                 context2d.arc(part.x - offx, part.y - offy, 50, 0, double_pi, false);
                 context2d.fill();
             });
+            context2d.lineWidth = 5;
+            context2d.strokeStyle = 'red';
             context2d.fillStyle = 'red';
             gamedata[1].forEach(function(snake) {
                 snake.parts.forEach(function(part) {
@@ -90,6 +93,14 @@ window.bot_impl = function(framework, slither_bot) {
                     context2d.arc(part.x - offx, part.y - offy, 50, 0, double_pi, false);
                     context2d.fill();
                 });
+
+                context2d.beginPath();
+                context2d.moveTo(snake.rect.minX - offx, snake.rect.minY - offy);
+                context2d.lineTo(snake.rect.maxX - offx, snake.rect.minY - offy);
+                context2d.lineTo(snake.rect.maxX - offx, snake.rect.maxY - offy);
+                context2d.lineTo(snake.rect.minX - offx, snake.rect.maxY - offy);
+                context2d.lineTo(snake.rect.minX - offx, snake.rect.minY - offy);
+                context2d.stroke();
             });
 
             var renderFood = function(food) {
@@ -367,24 +378,7 @@ window.bot_impl = function(framework, slither_bot) {
 
             var cos = Math.cos(snake.angle);
             var sin = Math.sin(snake.angle);
-            if(snake.speed > myself.speed && diff < 0.5) {
-                snake.parts.push({
-                    "x": snake.x + snake.speed * cos,
-                    "y": snake.y + snake.speed * sin
-                });
-                snake.parts.push({
-                    "x": snake.x + (snake.speed*2) * cos,
-                    "y": snake.y + (snake.speed*2) * sin
-                });
-                snake.parts.push({
-                    "x": snake.x + snake.speed * snake.d * cos,
-                    "y": snake.y + snake.speed * snake.d * sin
-                });
-                snake.parts.push({
-                    "x": snake.x + (snake.speed*2) * snake.d * cos,
-                    "y": snake.y + (snake.speed*2) * snake.d * sin
-                });
-            } else {
+            if(snake.speed < myself.speed || diff >= 0.5) {
                 var d = Math.min(150, 30 + (snake.speed * snake.d/myself.speed));
                 prey.push({
                     "x": snake.x + d * cos,
@@ -410,6 +404,22 @@ window.bot_impl = function(framework, slither_bot) {
             snakeExtras.forEach(function(extra) {
                 snake.parts.push(extra);
             });
+
+            var rect = {
+                minX: max,
+                minY: max,
+                maxX: -max,
+                maxY: -max
+            }
+            snake.parts.forEach(function(part) {
+                rect.minX = Math.min(rect.minX, part.x);
+                rect.maxX = Math.max(rect.maxX, part.x);
+                rect.minY = Math.min(rect.minY, part.y);
+                rect.maxY = Math.max(rect.maxY, part.y);
+            });
+            rect.width = rect.maxX - rect.minX;
+            rect.height = rect.maxY - rect.minY;
+            snake.rect = rect;
         });
         food.forEach(function(food) {
             food.food = true;
@@ -459,14 +469,17 @@ window.bot_impl = function(framework, slither_bot) {
                         if(dist <= 0 || dist > 1)
                             return;
 
-                        if(food.size > 1)
-                            wantages[id][0] += Math.pow(food.size, 3)*dist;
+                        var large = food.size > 1;
+
+                        var diff = Math.abs(((myself.angle - food.r) + Math.PI) % double_pi - Math.PI);
+                        diff /= large ? double_pi : view_pi;
+                        diff = 1.0-diff;
+                        if(diff > 1 || diff <= 0)
+                            return;
+
+                        if(large)
+                            wantages[id][0] += Math.pow(food.size, 3)*dist*(0.5+diff);
                         else {
-                            var diff = Math.abs(((myself.angle - food.r) + Math.PI) % double_pi - Math.PI);
-                            diff /= view_pi;
-                            diff = 1.0-diff;
-                            if(diff > 1 || diff <= 0)
-                                return;
 
                             wantages[id][0] += food.size*diff*dist;
                         }
@@ -524,6 +537,7 @@ window.bot_impl = function(framework, slither_bot) {
 
         snake_onscreen = false;
         snake_nearme = false;
+        var snakes_nearme = [];
         for(var i=0; i<segments; i++) {
             if(wantages[i][0] < 0) {
                 snake_onscreen = true;
@@ -550,12 +564,15 @@ window.bot_impl = function(framework, slither_bot) {
             });
         }
 
+        wrapTarget = false;
         if(surrounded) {
             // TODO: Try to exit via the tail of the snake thats surrounding us
             for(var i=0; i<segments; i++) {
                 if(wantages[i][2].indexOf(surrounded*1) !== -1)
                     wantages[i][0] -= 500;
             }
+        } else {
+            // TODO: Find another snake to wrap
         }
 
         maxSegment[1] = max;
