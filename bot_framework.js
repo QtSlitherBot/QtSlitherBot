@@ -19,7 +19,7 @@
 
 (function(global) {
     var main = function(slither_bot) {
-        var version = 1.2;
+        var version = 1.3;
         slither_bot.print("SlitherBot Framework V" + version);
 
         function escapeHtml(unsafe) {
@@ -189,12 +189,39 @@
             }
         }
 
+
+        var twitchEmoticons;
+        function updateEmoticons(emoticons) {
+            twitchEmoticons = [];
+            if(!emoticons) {
+                slither_bot.warning("No emoticons loaded...");
+            } else {
+                emoticons.forEach(function(emoticon) {
+                    try {
+                        twitchEmoticons.push({
+                            regex: new RegExp("(^|\W)" + emoticon.regex + "(\W|$)", "g"),
+                            src: emoticon.images[0].url
+                        });
+                    } catch(e) {}
+                });
+                slither_bot.print("Loaded " + twitchEmoticons.length + " emoticons!");
+            }
+        }
+        slither_bot.parsedEmoticons.connect(updateEmoticons);
+        updateEmoticons(slither_bot.emoticons);
+
         function showTwitchComment(user, text) {
+            text = escapeHtml(text);
+            twitchEmoticons.forEach(function(emoticon) {
+                text = text.replace(emoticon.regex, "<img src=\"" + emoticon.src + "\" />");
+            });
+            text = text.replace(/(^|\W)(@\w+)(\W|$)/g, "<span color='yellow'>$2</span>");
+
             var comment = document.createElement("div");
             comment.style.opacity = 0;
             comment._opacity = 0;
             var content = document.createElement("div");
-            content.innerHTML = "<b>" + escapeHtml(user) + "</b><br />" + escapeHtml(text);
+            content.innerHTML = "<b>" + escapeHtml(user) + "</b><br />" + text;
             content.style.maxWidth = twichOverlay.maxWidth;
             content.style.padding = "8px";
             comment.appendChild(content);
@@ -212,7 +239,9 @@
                 commentHeight -= comment._height;
                 shrink(comment);
                 fadeOut(comment, function() {
-                    twichOverlay.removeChild(comment);
+                    try {
+                        twichOverlay.removeChild(comment);
+                    } catch(e) {}
                 });
             }, 15000);
 
@@ -308,7 +337,7 @@
                 try {
                     bot_framework.onrender(overlayContext, w, h);
                 } catch(e) {
-                    console.error(e.stack || e);
+                    slither_bot.critical(e.stack || e);
                 }
             }
         }
@@ -439,7 +468,7 @@
                     }
                 }
             } catch(e) {
-                console.error(e.stack || e);
+                slither_bot.critical(e.stack || e);
             }
         }
         setInterval(bot_main);
@@ -510,15 +539,37 @@
         });
     else {
         var noop = function(){}
+        function updateStatus(state) {
+            document.title = "QtSltherBot (" + state + ")";
+        }
+
         main({
-             ready: noop,
-             running: noop,
-             died: noop,
+             emoticon: noop,
+             emoticonCount: noop,
+             updateStatus: updateStatus,
+             ready: function() {
+                 updateStatus("Ready");
+             },
+             running: function() {
+                 updateStatus("Running");
+             },
+             died: function() {
+                 updateStatus("Died");
+             },
              twitchComment: {
+                 connect: noop
+             },
+             parsedEmoticons: {
                  connect: noop
              },
              print: function(msg) {
                 console.log("SlitherBot:", msg)
+             },
+             warning: function(msg) {
+                console.warn("SlitherBot:", msg)
+             },
+             critical: function(msg) {
+                console.error("SlitherBot:", msg)
              }
         });
     }

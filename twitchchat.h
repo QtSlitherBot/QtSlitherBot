@@ -24,6 +24,7 @@
 #include <QTimer>
 
 class QWebSocket;
+class BotController;
 
 class TwitchChat : public QObject
 {
@@ -38,14 +39,20 @@ private slots:
     void connected();
     void receive(QString);
     void error(QAbstractSocket::SocketError);
+    void fetchEmoticons();
 
 signals:
+    void parsedEmoticons(QVariantList emoticons);
     void comment(QString user, QString comment);
 
 private:
+    friend class BotController;
+
     QString oauth;
     QString channel;
     QTimer autoReconnect;
+    QTimer refetchEmoticons;
+    QVariantList emoticons;
     static QRegExp message;
     static QRegExp ping;
     QWebSocket* wsocket;

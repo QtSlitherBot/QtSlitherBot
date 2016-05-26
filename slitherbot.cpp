@@ -87,8 +87,9 @@ void SlitherBot::closeTab(int tab) {
 void SlitherBot::newInstance() {
     BotInstance* instance = new BotInstance();
     ui->tabWidget->addTab(instance, "Bot (Loading)");
-    BotController* controller = new BotController(ui->tabWidget, instance);
+    BotController* controller = new BotController(ui->tabWidget, instance, &twitchChat);
     connect(&twitchChat, SIGNAL(comment(QString,QString)), controller, SIGNAL(twitchComment(QString,QString)));
+    connect(&twitchChat, SIGNAL(parsedEmoticons(QVariantList)), controller, SIGNAL(parsedEmoticons(QVariantList)));
     instance->init(controller);
 }
 

@@ -1,9 +1,16 @@
 #include "twitchchat.h"
 
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QWebSocket>
 #include <QMetaEnum>
 #include <QDebug>
 #include <QFile>
+#include <QUrl>
 
 QRegExp TwitchChat::message("^@.+display-name=([^;]+);.+\\.tmi\\.twitch\\.tv PRIVMSG #\\w+ :(.+)\r\n$");
 QRegExp TwitchChat::ping("^\\s*PING\\s*\r\n$");
@@ -14,6 +21,41 @@ TwitchChat::TwitchChat() : wsocket(0)
     autoReconnect.setInterval(500);
     autoReconnect.setSingleShot(true);
     QObject::connect(&autoReconnect, SIGNAL(timeout()), this, SLOT(connect()));
+
+    fetchEmoticons();
+}
+
+void TwitchChat::fetchEmoticons() {
+    QNetworkAccessManager* networkAccessManager = new QNetworkAccessManager(this);
+    QNetworkReply* reply = networkAccessManager->get(QNetworkRequest(QUrl("https://api.twitch.tv/kraken/chat/emoticons")));
+    QObject::connect(reply, &QNetworkReply::finished, [=]() {
+        QByteArray data = reply->readAll();
+
+        QJsonParseError error;
+        QJsonDocument document = QJsonDocument::fromJson(data, &error);
+        if(error.error)
+            qCritical() << error.errorString();
+        else {
+            this->emoticons.clear();
+            QJsonArray emoticons = document.object().value("emoticons").toArray();
+            qDebug() << "Fetched" << emoticons.size() << "emoticons";
+            foreach(const QJsonValue& value, emoticons) {
+                this->emoticons.append(value.toVariant());
+            }
+        }
+
+        reply->deleteLater();
+        networkAccessManager->deleteLater();
+
+        emit parsedEmoticons(emoticons);
+    });
+    /*QObject::connect(reply, &QNetworkReply::error, [=](QNetworkReply::NetworkError error) {
+        static QMetaEnum metaEnum = QMetaEnum::fromType<QNetworkReply::NetworkError>();
+        qDebug() << metaEnum.valueToKey(error);
+
+        reply->deleteLater();
+        networkAccessManager->deleteLater();
+    });*/
 }
 
 void TwitchChat::connect(QString channel, QString oauth) {
