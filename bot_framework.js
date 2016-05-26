@@ -504,9 +504,24 @@
         slither_bot.ready();
     }
 
-    new QWebChannel(qt.webChannelTransport, function (channel) {
-        main(channel.objects.slither_bot);
-    });
+    if(global["QWebChannel"])
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            main(channel.objects.slither_bot);
+        });
+    else {
+        var noop = function(){}
+        main({
+             ready: noop,
+             running: noop,
+             died: noop,
+             twitchComment: {
+                 connect: noop
+             },
+             print: function(msg) {
+                console.log("SlitherBot:", msg)
+             }
+        });
+    }
 })(this);
 
 

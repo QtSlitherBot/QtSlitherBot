@@ -41,7 +41,8 @@ FORMS    += \
 DISTFILES += \
     bot_framework.js \
     basic_bot.js \
-    adv_bot.js
+    adv_bot.js \
+    tamper.user.js
 
 RESOURCES += \
     resources.qrc
