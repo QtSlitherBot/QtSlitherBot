@@ -45,14 +45,15 @@ window.bot_impl = function(framework, slither_bot) {
     var gamedata = [{x:0,y:0},[],[],[],1];
     var viewlimit = 5600;
     var snake_onscreen;
+    var snake_nearme;
     var trapped = false;
     var max = 999999999;
     var surrounded = false;
     var desiredSegment = -1;
     var maxSegments = segments-1;
-    var wrapSegments = segments*0.6;
+    var wrapSegments = Math.floor(segments*0.6);
     var half_segments = Math.ceil(segments/2);
-    var positions = [], wantages = [], wantagesLimit = [];
+    var positions = [], wantages = [], wantagesLimit = [], insets = [];
     var mod = double_pi/segments;
     var half_mod = mod/2;
     for(var i=0; i<segments; i++) {
@@ -60,6 +61,7 @@ window.bot_impl = function(framework, slither_bot) {
         positions.push([modr,Math.round(200 * Math.cos(modr)),Math.round(200 * Math.sin(modr)),Math.round(100 * Math.cos(modr)),Math.round(100 * Math.sin(modr)),Math.round(50 * Math.cos(modr)),Math.round(50 * Math.sin(modr))]);
         wantages.push([0,false]);
         wantagesLimit.push(0);
+        insets.push(0);
     }
 
     var snakePos = [0,0];
@@ -211,6 +213,18 @@ window.bot_impl = function(framework, slither_bot) {
                 var snakeCount = "" + wantages[i][2].length;
                 measured = context2d.measureText(snakeCount);
                 context2d.fillText(snakeCount, wh + position[5] - measured.width/2, hh + position[6] + 8);
+                insets[i] = 1;
+            } else if(insets[i] > 0) {
+                var inset = insets[i];
+                inset -= inset/7;
+                insets[i] = inset = Math.floor(inset*100)/100;
+                if(inset > 0) {
+                    context2d.beginPath();
+                    context2d.moveTo(wh, hh);
+                    context2d.arc(wh, hh, 150, start, start+mod, false);
+                    context2d.fillStyle = 'rgba(255, 255, 255, ' + (inset*0.4) + ')';
+                    context2d.fill();
+                }
             }
 
             if(isWanted) {
@@ -244,7 +258,7 @@ window.bot_impl = function(framework, slither_bot) {
         }
 
         context2d.font = "22px sans";
-        var lines = ["Debugging Information", "Framework Version: " + framework.version, "Bot Version: " + version, "", "Snake Position:", Math.round(snakePos[0]) + "," + Math.round(snakePos[1]), "Food In View: " + food_c, "Prey In View: " + prey_c, "Snakes In View: " + snake_c, "View Distance: " + maxview, "Snake in View: " + (snake_onscreen ? "Yes" : "No"), "Boosting: " + (boost ? "Yes" : "No"), "Has Focus: " + (framework.isFocused() ? "Yes" : "No"), "", "Connected to:", window['ws'].url];
+        var lines = ["Debugging Information", "Framework Version: " + framework.version, "Bot Version: " + version, "", "Snake Position:", Math.round(snakePos[0]) + "," + Math.round(snakePos[1]), "Food In View: " + food_c, "Prey In View: " + prey_c, "Snakes In View: " + snake_c, "View Distance: " + maxview, "Snake in View: " + (snake_onscreen ? "Yes" : "No"), "Snake Nearme: " + (snake_nearme ? "Yes" : "No"), "Surrounded: " + (surrounded ? surrounded : "No"), "Boosting: " + (boost ? "Yes" : "No"), "Has Focus: " + (framework.isFocused() ? "Yes" : "No"), "", "Connected to:", window['ws'].url];
 
         var width = 0;
         lines.forEach(function(line) {
@@ -263,12 +277,12 @@ window.bot_impl = function(framework, slither_bot) {
 
         if(surrounded) {
             context2d.save();
-            context2d.translate(wh, hh);
+            //context2d.translate(wh, hh);
             context2d.fillStyle = "rgba(255, 0, 0, 1)";
-            context2d.arc(0, 0, 50, 0, Math.PI, false);
+            context2d.arc(wh, hh, 50, 0, Math.PI, false);
             context2d.fillStyle = "rgba(255, 0, 0, 0.4)";
             context2d.scale(exclamationScale,exclamationScale);
-            context2d.arc(0, 0, 50, 0, Math.PI, false);
+            context2d.arc(wh, hh, 50, 0, Math.PI, false);
             context2d.restore();
 
             exclamationScale += exclamationScale/7;
@@ -297,6 +311,7 @@ window.bot_impl = function(framework, slither_bot) {
         mode = -1;
         snakePos = [myself.x, myself.y];
         var hit_threshold = myself.speed * 50;
+        var want_threshold = myself.speed * 10;
 
         if(rendergame) {
             gamedata[0] = myself;
@@ -370,7 +385,7 @@ window.bot_impl = function(framework, slither_bot) {
                     "y": snake.y + (snake.speed*2) * snake.d * sin
                 });
             } else {
-                var d = Math.min(100, snake.speed * 20 + snake.d/(myself.speed*3));
+                var d = Math.min(150, 30 + (snake.speed * snake.d/myself.speed));
                 prey.push({
                     "x": snake.x + d * cos,
                     "y": snake.y + d * sin,
@@ -383,7 +398,7 @@ window.bot_impl = function(framework, slither_bot) {
             snake.parts.forEach(function(part) {
                 var cos = Math.cos(part.r);
                 var sin = Math.sin(part.r);
-                for(var i=10; i<=50; i+=10) {
+                for(var i=10; i<=80; i+=20) {
                     var extra = {
                         "x": part.x + i * cos,
                         "y": part.y + i * sin
@@ -410,7 +425,7 @@ window.bot_impl = function(framework, slither_bot) {
         while(view <= viewlimit) {
             if(incompleteWantage)
                 maxview = view;
-            processSnakePart = function(part, snakeid) {
+            processSnakePart = function(part, snakeid, speed) {
                 if(part.d > view)
                     return;
 
@@ -418,18 +433,19 @@ window.bot_impl = function(framework, slither_bot) {
                 part.ids.forEach(function(id){
                     if(wantages[id][0] >= 0)
                         wantages[id][0] = 0;
-                    wantages[id][0] -= dist*0.004;
+                    wantages[id][0] -= dist*speed;
                     wantages[id][1] = Math.min(wantages[id][1], part.d);
                     if(wantages[id][2].indexOf(snakeid) === -1)
                         wantages[id][2].push(snakeid);
                 });
             };
-            var snakeid = 0;
+            var snakeid = 1;
             snakes.forEach(function(snake) {
+                var speed = snake.speed / 100;
                 snake.parts.forEach(function(part) {
-                    processSnakePart(part, snakeid);
+                    processSnakePart(part, snakeid, speed);
                 });
-                processSnakePart(snake, snakeid);
+                processSnakePart(snake, snakeid, speed);
                 snakeid++;
             });
             var processFood = function(food) {
@@ -437,7 +453,7 @@ window.bot_impl = function(framework, slither_bot) {
                     return;
 
                 food.ids.forEach(function(id) {
-                    if(food.d+50 <= wantages[id][1]) {
+                    if(food.d+want_threshold <= wantages[id][1]) {
                         var dist = food.d / viewlimit;
                         dist = 1 - dist;
                         if(dist <= 0 || dist > 1)
@@ -507,7 +523,7 @@ window.bot_impl = function(framework, slither_bot) {
         desiredSegment = maxSegment[0];
 
         snake_onscreen = false;
-        var snake_nearme = false;
+        snake_nearme = false;
         for(var i=0; i<segments; i++) {
             if(wantages[i][0] < 0) {
                 snake_onscreen = true;
@@ -537,8 +553,8 @@ window.bot_impl = function(framework, slither_bot) {
         if(surrounded) {
             // TODO: Try to exit via the tail of the snake thats surrounding us
             for(var i=0; i<segments; i++) {
-                if(wantages[i][2].indexOf(surrounded) !== -1)
-                    wantages[i][0] = -100;
+                if(wantages[i][2].indexOf(surrounded*1) !== -1)
+                    wantages[i][0] -= 500;
             }
         }
 
