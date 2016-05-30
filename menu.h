@@ -41,11 +41,15 @@ public:
     QString twitchOAuth();
     void setTwitchOAuth(QString);
 
+    QStringList messages();
+    void setMessages(QStringList);
+
 private slots:
     void xmBrowse();
 
 private:
     Ui::Menu *ui;
+    QStringList _messages;
 };
 
 #endif // MENU_H

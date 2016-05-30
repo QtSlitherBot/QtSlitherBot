@@ -42,6 +42,7 @@ SlitherBot::SlitherBot() :
     button->setText("Menu");
     connect(button, &QPushButton::clicked, [=]() {
         Menu menu(this);
+        menu.setMessages(messages);
         menu.setXMPath(settings.value("xmpath", "").toString());
         menu.setTwitchChannel(settings.value("twitchchannel", "").toString());
         menu.setTwitchOAuth(settings.value("twitchoauth", "").toString());
@@ -49,10 +50,15 @@ SlitherBot::SlitherBot() :
             QString xmPath = menu.xmPath();
             QString twitchOAuth = menu.twitchOAuth();
             QString twitchChannel = menu.twitchChannel();
+            QStringList messages = menu.messages();
 
             settings.setValue("xmpath", xmPath);
             settings.setValue("twitchoauth", twitchOAuth);
             settings.setValue("twitchchannel", twitchChannel);
+            settings.setValue("messages", messages);
+
+            emit updateMessages(messages);
+            this->messages = messages;
 
             player.play(xmPath);
         }
@@ -61,17 +67,19 @@ SlitherBot::SlitherBot() :
 
     ui->tabWidget->setCornerWidget(toolBar);
 
-    QMetaObject::invokeMethod(&player, "next", Qt::QueuedConnection);
-    QMetaObject::invokeMethod(this, "newInstance", Qt::QueuedConnection);
-
-    QString xmPath = settings.value("xmpath", "").toString();
+    QString xmPath = settings.value("xmpath").toString();
     if(!xmPath.isEmpty())
         player.play(xmPath);
 
-    QString oauth = settings.value("twitchoauth", "").toString();
-    QString channel = settings.value("twitchchannel", "").toString();
+    QString oauth = settings.value("twitchoauth").toString();
+    QString channel = settings.value("twitchchannel").toString();
     if(!oauth.isEmpty() && !channel.isEmpty())
         twitchChat.connect(channel, oauth);
+
+    messages = settings.value("messages").toStringList();
+
+    QMetaObject::invokeMethod(&player, "next", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, "newInstance", Qt::QueuedConnection);
 }
 
 void SlitherBot::closeTab(int tab) {
@@ -87,9 +95,10 @@ void SlitherBot::closeTab(int tab) {
 void SlitherBot::newInstance() {
     BotInstance* instance = new BotInstance();
     ui->tabWidget->addTab(instance, "Bot (Loading)");
-    BotController* controller = new BotController(ui->tabWidget, instance, &twitchChat);
+    BotController* controller = new BotController(instance, this);
     connect(&twitchChat, SIGNAL(comment(QString,QString)), controller, SIGNAL(twitchComment(QString,QString)));
     connect(&twitchChat, SIGNAL(parsedEmoticons(QVariantList)), controller, SIGNAL(parsedEmoticons(QVariantList)));
+    connect(this, SIGNAL(updateMessages(QStringList)), controller, SIGNAL(updateMessages(QStringList)));
     instance->init(controller);
 }
 

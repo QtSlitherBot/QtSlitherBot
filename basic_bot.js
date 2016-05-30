@@ -18,7 +18,7 @@
 // TODO: Pretty much rewrite this code as its very messy...
 
 window.bot_impl = function(framework, slither_bot) {
-    var version = "1.7.8~basic";
+    var version = "1.7.9~basic";
     var worldlimit = 40000;
 
     var segments = 16;
@@ -44,8 +44,8 @@ window.bot_impl = function(framework, slither_bot) {
     var mode = 0;
     var gamedata = [{x:0,y:0},[],[],[],1];
     var viewlimit = 5600;
-    var snake_onscreen;
     var snake_nearme;
+    var snake_onscreen;
     var trapped = false;
     var max = 999999999;
     var surrounded = false;
@@ -392,7 +392,7 @@ window.bot_impl = function(framework, slither_bot) {
             snake.parts.forEach(function(part) {
                 var cos = Math.cos(part.r);
                 var sin = Math.sin(part.r);
-                for(var i=10; i<=80; i+=20) {
+                for(var i=10; i<=100; i+=20) {
                     var extra = {
                         "x": part.x + i * cos,
                         "y": part.y + i * sin
@@ -608,18 +608,22 @@ window.bot_impl = function(framework, slither_bot) {
                 var minright = [-1,10,-max];
                 var closestForward = wantages[ang][1];
 
+                var lang;
                 var nang = ang;
                 var startWantage = wantages[ang][0];
-                for(var i=0; i<half_segments; i++) {
+                for(var i=0; i<segments; i++) {
                     nang ++;
                     if(nang >= segments)
                         nang -= segments;
+
+                    if(i < half_segments)
+                        lang = nang;
 
                     var wantage = wantages[nang];
                     if(wantage[1] < closestForward && wantage[0] < startWantage)
                         break;
                     if(wantage[0] > startWantage && wantage[0] > minright[2]) {
-                        minright[0] = nang;
+                        minright[0] = lang;
                         minright[1] = i;
                         minright[2] = wantage[0];
                     }
@@ -628,16 +632,19 @@ window.bot_impl = function(framework, slither_bot) {
                         break;
                 }
                 nang = ang;
-                for(var i=0; i<half_segments; i++) {
+                for(var i=0; i<segments; i++) {
                     nang --;
                     if(nang < 0)
                         nang += segments;
+
+                    if(i < half_segments)
+                        lang = nang;
 
                     var wantage = wantages[nang];
                     if(wantage[1] < closestForward && wantage[0] < startWantage)
                         break;
                     if(wantage[0] > startWantage && wantage[0] > minleft[2]) {
-                        minleft[0] = nang;
+                        minleft[0] = lang;
                         minleft[1] = i;
                         minleft[2] = wantage[0];
                     }
@@ -647,7 +654,7 @@ window.bot_impl = function(framework, slither_bot) {
                 }
 
                 var r;
-                if(minleft[0] > -1 && minleft[1] < minright[1])
+                if(minleft[0] > -1 && minleft[2] > minright[2])
                     r = positions[minleft[0]];
                 else if(minright[0] > -1)
                     r = positions[minright[0]];

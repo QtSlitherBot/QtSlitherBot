@@ -20,7 +20,8 @@ SOURCES += main.cpp\
     twitchchat.cpp \
     menu.cpp \
     overrides.cpp \
-    xmpplayer.cpp
+    xmpplayer.cpp \
+    messages.cpp
 
 HEADERS  += \
     webpage.h \
@@ -31,12 +32,14 @@ HEADERS  += \
     twitchchat.h \
     menu.h \
     overrides.h \
-    xmpplayer.h
+    xmpplayer.h \
+    messages.h
 
 FORMS    += \
     menu.ui \
     slitherbot.ui \
-    overrides.ui
+    overrides.ui \
+    messages.ui
 
 DISTFILES += \
     bot_framework.js \

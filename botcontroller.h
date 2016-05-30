@@ -21,21 +21,24 @@
 #include <QTabWidget>
 #include "botinstance.h"
 
-class TwitchChat;
+class SlitherBot;
 
 class BotController : public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(QVariantList emoticons READ emoticons NOTIFY parsedEmoticons)
+    Q_PROPERTY(QStringList messages READ messages NOTIFY updateMessages)
 public:
-    explicit BotController(QTabWidget *tabs, BotInstance* bot, TwitchChat* chat);
+    explicit BotController(BotInstance* bot, SlitherBot* slither);
 
     QVariantList emoticons();
+    QStringList messages();
 
 signals:
     void twitchComment(QString user, QString comment);
     void parsedEmoticons(QVariantList emoticons);
+    void updateMessages(QStringList messages);
 
 public slots:
     void critical(QString message);
@@ -54,9 +57,8 @@ public slots:
     void updateStatus(QString state);
 
 private:
-    QTabWidget *tabs;
     BotInstance* bot;
-    TwitchChat* chat;
+    SlitherBot* slither;
 };
 
 #endif // BOTCONTROLLER_H

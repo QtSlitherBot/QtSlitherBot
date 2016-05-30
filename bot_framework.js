@@ -251,18 +251,18 @@
             }, uiTimer);
         };
         slither_bot.twitchComment.connect(showTwitchComment);
-        var randomMessages = [
-                    "You can get the music from this stream by going to keygenmusic.net",
-                    "Check out nexustools.com for other random projects and goodies",
-                    "Source and Windows/Mac releases available at https://github.com /QtSlitherBot/QtSlitherBot",
-                    "Apologies for Stream outages during the day, they're working on our internet",
-                    "This stream is being hosted by an Ubuntu machine using OBS and other Free Software!",
-                    "This bot uses only OpenSource software!"
-                ];
+
+        function updateMessages(messages) {
+            randomMessages = messages;
+            messageRandom = randomMessages.length-1;
+        }
+        var randomMessages = [];
         var messageRandom = randomMessages.length-1;
+        slither_bot.updateMessages.connect(updateMessages);
+        updateMessages(slither_bot.messages);
 
         setInterval(function() {
-            if(Math.random() > 0.8)
+            if(randomMessages && Math.random() > 0.8)
                 showTwitchComment("QtSlitherBot", randomMessages[Math.round(Math.random() * messageRandom)]);
         }, 30000);
 
@@ -559,6 +559,9 @@
              twitchComment: {
                  connect: noop
              },
+             updateMessages: {
+                 connect: noop
+             },
              parsedEmoticons: {
                  connect: noop
              },
@@ -570,7 +573,9 @@
              },
              critical: function(msg) {
                 console.error("SlitherBot:", msg)
-             }
+             },
+
+             messages: []
         });
     }
 })(this);

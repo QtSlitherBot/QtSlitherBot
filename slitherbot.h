@@ -29,6 +29,7 @@ class SlitherBot;
 }
 
 class QLabel;
+class BotController;
 
 class SlitherBot : public QMainWindow
 {
@@ -42,8 +43,14 @@ public slots:
     void closeTab(int tab);
     void newInstance();
 
+signals:
+    void updateMessages(QStringList messages);
+
 private:
+    friend class BotController;
+
     Ui::SlitherBot *ui;
+    QStringList messages;
     TwitchChat twitchChat;
     QSettings settings;
     XMPPlayer player;

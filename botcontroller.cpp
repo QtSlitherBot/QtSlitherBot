@@ -1,35 +1,39 @@
 #include "botcontroller.h"
+#include "ui_slitherbot.h"
 #include "slitherbot.h"
 
-BotController::BotController(QTabWidget *tabWidget, BotInstance* bot, TwitchChat *chat) : QObject(bot)
+BotController::BotController(BotInstance* bot, SlitherBot *slither) : QObject(bot)
 {
     this->bot = bot;
-    this->tabs = tabWidget;
-    this->chat = chat;
+    this->slither = slither;
 }
 
 QVariantList BotController::emoticons() {
-    return chat->emoticons;
+    return slither->twitchChat.emoticons;
+}
+
+QStringList BotController::messages() {
+    return slither->messages;
 }
 
 void BotController::critical(QString message) {
-    qCritical() << message;
+    qCritical() << message.toLocal8Bit().data();
 }
 
 void BotController::warning(QString message) {
-    qWarning() << message;
+    qWarning() << message.toLocal8Bit().data();
 }
 
 void BotController::print(QString message) {
-    qDebug() << message;
+    qDebug() << message.toLocal8Bit().data();
 }
 
 void BotController::updateStatus(QString state) {
-    int index = tabs->indexOf(bot);
+    int index = slither->ui->tabWidget->indexOf(bot);
     if(index == -1)
         return;
 
-    tabs->setTabText(index, QString("Bot (%1)").arg(state));
+    slither->ui->tabWidget->setTabText(index, QString("Bot (%1)").arg(state));
 }
 
 
