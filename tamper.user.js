@@ -15,10 +15,10 @@
 
 window.addEventListener("load", function () {
     var script = document.createElement("SCRIPT");
-    script.src = "https://cdn.rawgit.com/QtSlitherBot/QtSlitherBot/86c285cc44f11595cded32039d296369ddf97db9/basic_bot.js";
+    script.src = "https://cdn.rawgit.com/QtSlitherBot/QtSlitherBot/901e41eb30c9b32cf113db2bc0fae01e3e7b668b/basic_bot.js";
     document.getElementsByTagName('head')[0].appendChild(script);
 
     script = document.createElement("SCRIPT");
-    script.src = "https://cdn.rawgit.com/QtSlitherBot/QtSlitherBot/86c285cc44f11595cded32039d296369ddf97db9/bot_framework.js";
+    script.src = "https://cdn.rawgit.com/QtSlitherBot/QtSlitherBot/901e41eb30c9b32cf113db2bc0fae01e3e7b668b/bot_framework.js";
     document.getElementsByTagName('head')[0].appendChild(script);
 });
