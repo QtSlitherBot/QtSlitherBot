@@ -486,9 +486,9 @@
             if(!overriding)
                 return;
             try{clearTimeout(resetTimeout)}catch(e){}
-            overlay.style.opacity = "1";
             overriding = false;
             visibility = overlayEnabled ? 1 : 0;
+            overlay.style.opacity = visibility;
         }
 
         function returnControl() {
@@ -498,7 +498,7 @@
                 return;
             overriding = true;
             visibility = overlayEnabled ? 0.4 : 0;
-            overlay.style.opacity = "0.4";
+            overlay.style.opacity = visibility;
         }
 
         function resize() {
