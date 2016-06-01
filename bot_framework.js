@@ -19,7 +19,7 @@
 
 (function(global) {
     var main = function(slither_bot) {
-        var version = 1.3;
+        var version = 1.4;
         slither_bot.print("SlitherBot Framework V" + version);
 
         function escapeHtml(unsafe) {
@@ -92,6 +92,8 @@
         var double_pi = Math.PI*2;
 
         var hasFocus;
+        var visibility = 1;
+        var overlayEnabled = true;
         var overlay = document.createElement("canvas");
         overlay.style.top = "0";
         overlay.style.left = "0";
@@ -305,7 +307,15 @@
                     showTwitchComment("QtSlitherBot", (autoRespawn ? "En" : "Dis") + "abled Auto-Respawn");
                     break;
 
+                case 70:
+                    overlayEnabled = !overlayEnabled;
+                    showTwitchComment("QtSlitherBot", (overlayEnabled ? "En" : "Dis") + "abled Overlay");
+                    visibility = overlayEnabled ? (overriding ? 0.4 : 1) : 0;
+                    overlay.style.opacity = visibility;
+                    break;
+
                 default:
+                    slither_bot.print("Unknown Key: " + keyCode);
                     bot_framework.onkey(keyCode);
                 }
             }
@@ -404,8 +414,7 @@
                     if(dead === 0) {
                         if(!running) {
                             slither_bot.running();
-                            if(!overriding)
-                                overlay.style.opacity = 1;
+                            overlay.style.opacity = visibility;
                             running = true;
                         }
 
@@ -452,7 +461,7 @@
                         return;
                     } else {
                         dead = 1-dead;
-                        overlay.style.opacity = overriding ? dead * 0.4 : dead;
+                        overlay.style.opacity = dead * visibility;
                     }
                 }
                 if(running) {
@@ -479,6 +488,7 @@
             try{clearTimeout(resetTimeout)}catch(e){}
             overlay.style.opacity = "1";
             overriding = false;
+            visibility = overlayEnabled ? 1 : 0;
         }
 
         function returnControl() {
@@ -487,6 +497,7 @@
             if(overriding)
                 return;
             overriding = true;
+            visibility = overlayEnabled ? 0.4 : 0;
             overlay.style.opacity = "0.4";
         }
 

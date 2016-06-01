@@ -15,4 +15,4 @@
     along with QtSlitherBot.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// TODO: Write advanced bot implementation with dynamic ang;e
+// TODO: Write advanced bot implementation with dynamic angles

@@ -18,7 +18,7 @@
 // TODO: Pretty much rewrite this code as its very messy...
 
 window.bot_impl = function(framework, slither_bot) {
-    var version = "1.7.9~basic";
+    var version = "1.8.0~basic";
     var worldlimit = 40000;
 
     var segments = 16;
@@ -376,9 +376,20 @@ window.bot_impl = function(framework, slither_bot) {
             diff /= Math.PI;
             diff = 1-diff;
 
+            var r = Math.atan2(yy - snake.y, xx - snake.x);
+            if(r < 0)
+                r = Math.PI + (Math.PI+r);
+            snake.directionToHead = r;
+
+            var headDiff = Math.abs(((myself.angle - r) + Math.PI) % double_pi - Math.PI);
+            headDiff /= Math.PI;
+            headDiff = 1-headDiff;
+
+            snake.headDiff = headDiff;
+
             var cos = Math.cos(snake.angle);
             var sin = Math.sin(snake.angle);
-            if(snake.speed < myself.speed || diff >= 0.5) {
+            if(headDiff > 0.25 && (snake.speed < myself.speed || diff >= 0.5)) {
                 var d = Math.min(150, 30 + (snake.speed * snake.d/myself.speed));
                 prey.push({
                     "x": snake.x + d * cos,
@@ -456,6 +467,14 @@ window.bot_impl = function(framework, slither_bot) {
                     processSnakePart(part, snakeid, speed);
                 });
                 processSnakePart(snake, snakeid, speed);
+                if(snake.headDiff < 0.25 && snake.d < 50) {
+                    var id = Math.round(snake.directionToHead/segments);
+                    if(id > maxSegments)
+                        id = 0;
+                    if(wantages[id][0] > 0)
+                        wantages[id][0] = 0;
+                    wantages[id][0] -= 10;
+                }
                 snakeid++;
             });
             var processFood = function(food) {
